@@ -1,0 +1,40 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+@font-face{font-family:"IBM Plex Sans Arabic";src:url("../assets/fonts/IBMPlexSansArabic-Bold.ttf");font-weight:600 900}
+@font-face{font-family:"IBM Plex Sans Arabic";src:url("../assets/fonts/IBMPlexSansArabic-Regular.ttf");font-weight:100 500}
+html,body{margin:0;background:#000}
+</style></head>
+<body><canvas id="c"></canvas>
+<script src="ritm.js"></script>
+<script>
+/* صفحة الرندر: الرندر بيعطيها الوقت وصورة الفريم وصور البي-رول، وهي بترسم وبترجّع JPEG */
+let R = null; const MAIN = new Image(), BR = {};
+const loadImg = (im, src) => new Promise(r => {
+  if (!src) return r();
+  if (im.dataset.src === src && im.complete && im.naturalWidth) return r();
+  im.onload = im.onerror = () => r(); im.dataset.src = src; im.src = src;
+});
+window.setup = async (tl, fontCss) => {
+  if (fontCss) { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = fontCss; document.head.appendChild(l);
+    await new Promise(r => { l.onload = l.onerror = r; setTimeout(r, 10000); }); }
+  const f = tl.theme && tl.theme.font;
+  for (const w of [400, 700, 800, 900]) {
+    try { if (f) await document.fonts.load(w + ' 80px "' + f + '"', 'عربي ١٢٣'); } catch (e) {}
+    try { await document.fonts.load(w + ' 80px "IBM Plex Sans Arabic"', 'عربي'); } catch (e) {}
+  }
+  await document.fonts.ready;
+  R = Ritm.create(document.getElementById('c'), tl,
+    { video: () => MAIN.naturalWidth ? MAIN : null, broll: id => { const im = BR[id]; return im && im.naturalWidth ? im : null; } },
+    { scale: tl.scale || 1 });
+  return !!(f ? document.fonts.check('900 80px "' + f + '"', 'عربي') : true);
+};
+window.frame = async (t, main, brs) => {
+  const ps = [loadImg(MAIN, main)];
+  for (const [id, src] of Object.entries(brs || {})) { const im = BR[id] || (BR[id] = new Image()); ps.push(loadImg(im, src)); }
+  await Promise.all(ps);
+  R.draw(t);
+  return document.getElementById('c').toDataURL('image/jpeg', 0.93);
+};
+</script>
+</body></html>
